@@ -1,72 +1,71 @@
 const express = require('express');
-const db = require('../db');
-
 const router = express.Router();
+const db = require('./../db');
+const { randomUUID } = require('crypto');
 
-router.get('/', (req, res) => {
+router.route('/seats').get((req, res) => {
   res.json(db.seats);
 });
 
-router.get('/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const seat = db.seats.find(s => s.id === id);
-
-  if (!seat) {
-    return res.status(404).json({ message: 'Not found' });
-  }
-
-  res.json(seat);
+router.route('/seats/:id').get((req, res) => {
+  res.json(db.seats.filter((e) => e.id === Number(req.params.id)));
 });
 
-router.post('/', (req, res) => {
+router.route('/seats').post((req, res) => {
   const { day, seat, client, email } = req.body;
 
   if (!day || !seat || !client || !email) {
-    return res.status(400).json({
-      message: 'day, seat, client and email are required',
-    });
+    return res
+      .status(400)
+      .json({ message: 'day, seat, client and email are required' });
   }
 
-  const newSeat = {
-    id: Math.floor(Math.random() * 1000000),
+  if (db.seats.some((s) => s.day === Number(day) && s.seat === Number(seat))) {
+    return res.status(403).json({ message: 'The slot is already taken...' });
+  }
+
+  const newSeats = {
+    id: randomUUID(),
     day,
     seat,
     client,
     email,
   };
 
-  db.seats.push(newSeat);
+  db.seats.push(newSeats);
 
-  res.json({ message: 'OK' });
+  res.status(201).json({ message: 'OK' });
 });
 
-router.put('/:id', (req, res) => {
-  const id = Number(req.params.id);
+router.route('/seats/:id').put((req, res) => {
   const { day, seat, client, email } = req.body;
+  const id = Number(req.params.id);
 
-  const seatItem = db.seats.find(s => s.id === id);
+  if (!day || !seat || !client || !email) {
+    return res
+      .status(400)
+      .json({ message: 'day, seat, client and email are required' });
+  }
 
-  if (!seatItem) {
+  const index = db.seats.findIndex((e) => e.id === id);
+  if (index === -1) {
     return res.status(404).json({ message: 'Not found' });
   }
 
-  if (!day || !seat || !client || !email) {
-    return res.status(400).json({
-      message: 'day, seat, client and email are required',
-    });
-  }
+  db.seats[index] = {
+    id,
+    day,
+    seat,
+    client,
+    email,
+  };
 
-  seatItem.day = day;
-  seatItem.seat = seat;
-  seatItem.client = client;
-  seatItem.email = email;
-
-  res.json({ message: 'OK' });
+  res.status(200).json({ message: 'OK' });
 });
 
-router.delete('/:id', (req, res) => {
+router.route('/seats/:id').delete((req, res) => {
   const id = Number(req.params.id);
-  const index = db.seats.findIndex(s => s.id === id);
+  const index = db.seats.findIndex((e) => e.id === id);
 
   if (index === -1) {
     return res.status(404).json({ message: 'Not found' });
@@ -74,7 +73,7 @@ router.delete('/:id', (req, res) => {
 
   db.seats.splice(index, 1);
 
-  res.json({ message: 'OK' });
+  return res.json({ message: 'OK' });
 });
 
 module.exports = router;

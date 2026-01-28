@@ -1,29 +1,22 @@
 const express = require('express');
-const db = require('../db');
-
 const router = express.Router();
+const db = require('./../db');
+const { randomUUID } = require('crypto');
 
-router.get('/', (req, res) => {
-  res.json(db.testimonals);
+router.route('/testimonials').get((req, res) => {
+  res.json(db.testimonials);
 });
 
-router.get('/random', (req, res) => {
-  const randomIndex = Math.floor(Math.random() * db.testimonals.length);
-  res.json(db.testimonals[randomIndex]);
+router.route('/testimonials/random').get((req, res) => {
+  const randomIndex = Math.floor(Math.random() * db.testimonials.length);
+  res.json(db.testimonials[randomIndex]);
 });
 
-router.get('/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const testimonial = db.testimonals.find(t => t.id === id);
-
-  if (!testimonial) {
-    return res.status(404).json({ message: 'Not found' });
-  }
-
-  res.json(testimonial);
+router.route('/testimonials/:id').get((req, res) => {
+  res.json(db.testimonials.filter((e) => e.id === Number(req.params.id)));
 });
 
-router.post('/', (req, res) => {
+router.route('/testimonials').post((req, res) => {
   const { author, text } = req.body;
 
   if (!author || !text) {
@@ -31,47 +24,49 @@ router.post('/', (req, res) => {
   }
 
   const newTestimonial = {
-    id: Math.floor(Math.random() * 1000000),
+    id: randomUUID(),
     author,
     text,
   };
 
-  db.testimionals.push(newTestimonial);
+  db.testimonials.push(newTestimonial);
 
-  res.json({ message: 'OK' });
+  res.status(201).json({ message: 'OK' });
 });
 
-router.put('/:id', (req, res) => {
-  const id = Number(req.params.id);
+router.route('/testimonials/:id').put((req, res) => {
   const { author, text } = req.body;
-
-  const testimonial = db.testimonals.find(t => t.id === id);
-
-  if (!testimonial) {
-    return res.status(404).json({ message: 'Not found' });
-  }
+  const id = Number(req.params.id);
 
   if (!author || !text) {
     return res.status(400).json({ message: 'author and text are required' });
   }
 
-  testimonial.author = author;
-  testimonial.text = text;
+  const index = db.testimonials.findIndex((e) => e.id === id);
+  if (index === -1) {
+    return res.status(404).json({ message: 'Not found' });
+  }
 
-  res.json({ message: 'OK' });
+  db.testimonials[index] = {
+    id,
+    author,
+    text,
+  };
+
+  res.status(200).json({ message: 'OK' });
 });
 
-router.delete('/:id', (req, res) => {
+router.route('/testimonials/:id').delete((req, res) => {
   const id = Number(req.params.id);
-  const index = db.testimonals.findIndex(t => t.id === id);
+  const index = db.testimonials.findIndex((e) => e.id === id);
 
   if (index === -1) {
     return res.status(404).json({ message: 'Not found' });
   }
 
-  db.testimonals.splice(index, 1);
+  db.testimonials.splice(index, 1);
 
-  res.json({ message: 'OK' });
+  return res.json({ message: 'OK' });
 });
 
 module.exports = router;
