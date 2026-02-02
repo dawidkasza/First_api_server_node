@@ -8,7 +8,7 @@ router.route('/seats').get((req, res) => {
 });
 
 router.route('/seats/:id').get((req, res) => {
-  res.json(db.seats.filter((e) => e.id === Number(req.params.id)));
+  res.json(db.seats.filter((e) => e.id === req.params.id));
 });
 
 router.route('/seats').post((req, res) => {
@@ -33,13 +33,14 @@ router.route('/seats').post((req, res) => {
   };
 
   db.seats.push(newSeats);
+  req.io.emit('seatsUpdated', db.seats);
 
   res.status(201).json({ message: 'OK' });
 });
 
 router.route('/seats/:id').put((req, res) => {
   const { day, seat, client, email } = req.body;
-  const id = Number(req.params.id);
+  const id = req.params.id;
 
   if (!day || !seat || !client || !email) {
     return res
@@ -64,7 +65,7 @@ router.route('/seats/:id').put((req, res) => {
 });
 
 router.route('/seats/:id').delete((req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   const index = db.seats.findIndex((e) => e.id === id);
 
   if (index === -1) {
